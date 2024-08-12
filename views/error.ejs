@@ -1,0 +1,12 @@
+<% layout('layouts/app') %>
+
+<div class="row">
+    <div class="alert alert-danger" role="alert">
+        <div class="alert-heading">
+            <h4> (<%= err.statusCode %>) <%= err.message %> </h4>
+        </div>
+
+        <hr>
+        <p> <%= err.stack %> </p>
+    </div>
+</div>
