@@ -14,6 +14,7 @@ app.set('views', path.join(__dirname, 'views'));
 
 //schema
 const {placeSchema} = require('./schemas/places');
+const {reviewSchema} = require('./schemas/reviews');
 
 //middleware
 app.use(express.urlencoded({extended: true}));
@@ -22,6 +23,17 @@ app.engine('ejs', ejsMate);
 
 const validatePlace = (req, res, next) => {
     const {error} = placeSchema.validate(req.body);
+    if (error) {
+        const msg = error.details.map(el => el.message).join(',');
+        return next(new ErrorHandler(msg, 400));
+    }
+    else {
+        next();
+    }
+}
+
+const validateReview = (req, res, next) => {
+    const {error} = reviewSchema.validate(req.body);
     if (error) {
         const msg = error.details.map(el => el.message).join(',');
         return next(new ErrorHandler(msg, 400));
@@ -42,6 +54,7 @@ mongoose.connect('mongodb://127.0.0.1/bestpoints')
 
 //models
 const Place = require('./models/place');
+const Review = require('./models/review');
 const { title } = require('process');
 
 
@@ -64,7 +77,7 @@ app.get('/places/create', (req, res) => {
 
 
 app.get('/places/:id', wrapAsync( async (req,res) => {
-    const place = await Place.findById(req.params.id);
+    const place = await Place.findById(req.params.id).populate('reviews');
     res.render('places/show', {place});
 }));
 
@@ -106,16 +119,34 @@ app.delete('/places/:id', wrapAsync(async (req, res) => {
     res.redirect('/places');
 }));
 
-app.get('/seed/place', wrapAsync(async (req, res) => {
-    const place = new Place({
-        title: 'Best Place',
-        price: '100',
-        description: 'This is the best place to be',
-        location: 'Nairobi'
-    });
+
+app.post('/places/:id/reviews', validateReview, wrapAsync(async (req, res) => {
+    const review = new Review(req.body.review);
+    const place = await Place.findById(req.params.id);
+    place.reviews.push(review);
+    await review.save();
     await place.save();
-    res.send('Place created');
+    res.redirect(`/places/${req.params.id}`);
 }));
+
+app.delete('/places/:placeId/reviews/:reviewId', wrapAsync(async (req, res) => {
+    const {placeId, reviewId} = req.params;
+    await Place.findByIdAndUpdate(placeId, {$pull: {reviews: reviewId}});
+    await Review.findByIdAndDelete(reviewId);
+    
+    res.redirect(`/places/${placeId}`);
+}));
+
+// app.get('/seed/place', wrapAsync(async (req, res) => {
+//     const place = new Place({
+//         title: 'Best Place',
+//         price: '100',
+//         description: 'This is the best place to be',
+//         location: 'Nairobi'
+//     });
+//     await place.save();
+//     res.send('Place created');
+// }));
 
 
 app.all('*', (req, res, next) => {
