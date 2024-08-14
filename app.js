@@ -9,11 +9,14 @@ const wrapAsync = require('./utils/wrapAsync');
 const ErrorHandler = require('./utils/ErrorHandler');
 const session = require('express-session');
 const flash = require('connect-flash');
+const passport = require('passport');
+const LocalStrategy = require('passport-local');
+
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-
+const User = require('./models/user');
 
 //middleware
 app.use(express.urlencoded({extended: true}));
@@ -30,9 +33,17 @@ app.use(session({
         maxAge: 1000 * 60 * 60 * 24 * 7
     }
 }));
+
 app.use(flash());
 
+app.use(passport.initialize());
+app.use(passport.session());
+passport.use(new LocalStrategy(User.authenticate()));
+passport.serializeUser(User.serializeUser());
+passport.deserializeUser(User.deserializeUser());
+
 app.use((req, res, next) => {
+    res.locals.currentUser = req.user;
     res.locals.success_msg = req.flash('success_msg');
     res.locals.error_msg = req.flash('error_msg');
     next();
@@ -49,15 +60,19 @@ mongoose.connect('mongodb://127.0.0.1/bestpoints')
 
 //models
 
+
 const { title } = require('process');
 
 
 
 //routes
-
 app.get('/', (req, res) => {
     res.render('home');
 });
+
+
+
+app.use('/', require('./routes/auth'));
 app.use('/places', require('./routes/places'));
 app.use('/places/:placeId/reviews', require('./routes/reviews'));
 

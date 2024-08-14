@@ -3,7 +3,9 @@ const Place = require('../models/place');
 const {placeSchema} = require('../schemas/places');
 const wrapAsync = require('../utils/wrapAsync');
 const ErrorHandler = require('../utils/ErrorHandler');
-const  isValidObjectId  = require('../middleware/isValidObjectId');
+const  isValidObjectId  = require('../middlewares/isValidObjectId');
+const isAuth = require('../middlewares/isAuth');
+
 
 const router = express.Router();
 
@@ -23,19 +25,19 @@ router.get('/', wrapAsync(async (req, res) => {
     res.render('places/index', {places});
  }));
  
- router.get('/create', (req, res) => {
+ router.get('/create', isAuth, (req, res) => {
      res.render('places/create');
  });
  
  
  
  router.get('/:id', isValidObjectId('/places'), wrapAsync( async (req,res) => {
-     const place = await Place.findById(req.params.id).populate('reviews');
+     const place = await Place.findById(req.params.id).populate('reviews').populate('author');
      res.render('places/show', {place});
  }));
  
  
- router.post('/', validatePlace,  wrapAsync(async (req, res, next) => {
+ router.post('/', validatePlace,  isAuth, wrapAsync(async (req, res, next) => {
      // const placeSchema = joi.object({
      //     place: joi.object({
      //         title: joi.string().required(),
@@ -58,18 +60,18 @@ router.get('/', wrapAsync(async (req, res) => {
  }));
  
  
- router.get('/:id/edit', isValidObjectId('/places'),  wrapAsync(async (req, res) => {
+ router.get('/:id/edit', isAuth, isValidObjectId('/places'),  wrapAsync(async (req, res) => {
      const place = await Place.findById(req.params.id);
      res.render('places/edit', {place});
  }));
  
- router.put('/:id', isValidObjectId('/places'), validatePlace, wrapAsync(async (req, res) => {
+ router.put('/:id', isAuth, isValidObjectId('/places'), validatePlace, wrapAsync(async (req, res) => {
      await Place.findByIdAndUpdate(req.params.id, { ...req.body.place });
      req.flash('success_msg', 'Successfully updated place!');
      res.redirect('/places');
  }))
  
- router.delete('/:id', isValidObjectId('/places'), wrapAsync(async (req, res) => {
+ router.delete('/:id', isAuth, isValidObjectId('/places'), wrapAsync(async (req, res) => {
      await Place.findByIdAndDelete(req.params.id);
      req.flash('success_msg', 'Successfully deleted place!');
      res.redirect('/places');
