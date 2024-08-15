@@ -1,44 +1,21 @@
 const express = require('express');
 const Place = require('../models/place');
-const {reviewSchema} = require('../schemas/reviews');
+
+const reviewController = require('../controllers/reviews');
 const Review = require('../models/review');
 const wrapAsync = require('../utils/wrapAsync');
-const ErrorHandler = require('../utils/ErrorHandler');
+const {validateReview} = require('../middlewares/validator');
 const isValidObjectId = require('../middlewares/isValidObjectId');
 const isAuth = require('../middlewares/isAuth');
-
+const {isPermissionReview} = require('../middlewares/isPermission');
 
 const router = express.Router({mergeParams: true});
 
-const validateReview = (req, res, next) => {
-    const {error} = reviewSchema.validate(req.body);
-    if (error) {
-        const msg = error.details.map(el => el.message).join(',');
-        return next(new ErrorHandler(msg, 400));
-    }
-    else {
-        next();
-    }
-}
 
 
-router.post('/', isAuth, isValidObjectId('/places'), validateReview, wrapAsync(async (req, res) => {
-    const review = new Review(req.body.review);
-    const {placeId} = req.params;
-    const place = await Place.findById(placeId);
-    place.reviews.push(review);
-    await review.save();
-    await place.save();
-    req.flash('success_msg', 'Successfully made a new review!');
-    res.redirect(`/places/${placeId}`);
-}));
 
-router.delete('/:reviewId', isAuth, isValidObjectId('/places'), wrapAsync(async (req, res) => {
-    const {placeId, reviewId} = req.params;
-    await Place.findByIdAndUpdate(placeId, {$pull: {reviews: reviewId}});
-    await Review.findByIdAndDelete(reviewId);
-    req.flash('success_msg', 'Successfully deleted a review!');
-    res.redirect(`/places/${placeId}`);
-}));
+router.post('/', isAuth, isValidObjectId('/places'), validateReview, wrapAsync(reviewController.store));
+
+router.delete('/:reviewId', isAuth, isPermissionReview, isValidObjectId('/places'), wrapAsync(reviewController.destroy));
 
 module.exports = router;
