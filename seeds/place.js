@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const Place = require('../models/place');
+const { geometry } = require('../utils/hereMaps');
 
 mongoose.connect('mongodb://127.0.0.1/bestpoints')
     .then((result) => {
@@ -123,20 +124,7 @@ async function seedPlaces() {
                 location: 'Pulau Weh, Sabang, Aceh',
                 image: 'https://images.unsplash.com/photo-1505276283852-93f9ae227586?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w2NDI5OTZ8MHwxfHJhbmRvbXx8fHx8fHx8fDE3MjM0Nzg3OTN8&ixlib=rb-4.0.3&q=80&w=1080'
             },
-            {
-                title: 'Taman Safari Indonesia',
-                price: 0,
-                description: 'Taman hiburan keluarga dengan berbagai satwa liar di Cisarua, Bogor',
-                location: 'Taman Safari Indonesia, Cisarua, West Java',
-                image: 'https://images.unsplash.com/photo-1505276283852-93f9ae227586?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w2NDI5OTZ8MHwxfHJhbmRvbXx8fHx8fHx8fDE3MjM0Nzg3OTN8&ixlib=rb-4.0.3&q=80&w=1080'
-            },
-            {
-                title: 'Gunung Merbabu',
-                price: 50000,
-                description: 'Gunung yang terletak di Jawa Tengah dengan pemandangan matahari terbit yang indah',
-                location: 'Gunung Merbabu, Central Java',
-                image: 'https://images.unsplash.com/photo-1505276283852-93f9ae227586?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w2NDI5OTZ8MHwxfHJhbmRvbXx8fHx8fHx8fDE3MjM0Nzg3OTN8&ixlib=rb-4.0.3&q=80&w=1080'
-            },
+            
             {
                 title: 'Pulau Lombok',
                 price: 0,
@@ -156,12 +144,19 @@ async function seedPlaces() {
 
     
     try{
-        const newPlaces = places.map(place => {
+        const newPlaces = await Promise.all( places.map( async place => {
+            let geoData = await geometry(place.location);
+            if (!geoData){
+                geoData = { type: 'Point', coordinates: [116, -8]}
+                
+            }
+            console.log(geoData);
             return { ...place, author: '66bba36f0606c5cf14a23575', images: {
                 url: 'public\\images\\image-1723710143950-840599044.png',
-                filename: 'image-1723710143950-840599044.png'
-            }}
+                filename: 'image-1723710143950-840599044.png'},
+                geometry: geoData}
         })
+        )
         await Place.deleteMany({});
         await Place.insertMany(newPlaces);
         console.log('Places seeded successfully');

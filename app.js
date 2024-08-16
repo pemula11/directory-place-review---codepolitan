@@ -12,7 +12,6 @@ const flash = require('connect-flash');
 const passport = require('passport');
 const LocalStrategy = require('passport-local');
 
-
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
@@ -67,8 +66,10 @@ const { title } = require('process');
 
 //routes
 app.get('/', (req, res) => {
+   
     res.render('home');
 });
+
 
 
 

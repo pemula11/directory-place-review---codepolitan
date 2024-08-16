@@ -1,14 +1,23 @@
 <% layout('layouts/app') %>
+
+<script type="text/javascript" src="https://js.api.here.com/v3/3.1/mapsjs-clustering.js"></script>
+
     <h1>All Places</h1>
     <a href="/places/create">Add place</a>
 
+    <div id="mapContainer" style="width: 100%; height: 500px; margin-bottom: 5%;"></div>
 
     <% places.forEach(function(place) { %>
        
         <div class="card mb-3">
             <div class="row">
                 <div class="col-md-4">
-                    <img src="images/<%= place.images[0].filename %>" class="img-fluid" alt="">
+                    <% if (place.images.length) { %>
+                     
+                        <img src="images/<%= place.images[0].filename %>" class="img-fluid" alt="">
+                    <% } else { %>
+                        <img src="images/default.jpg" class="img-fluid" alt="">
+                    <% } %>
                 </div>
                 <div class="col-md-8">
                     <div class="card-body">
@@ -23,3 +32,64 @@
         </div>
 
     <% }); %>
+
+
+<script>
+    const clusteredPlace = <%- clusteredPlaces %>;
+</script>
+
+
+<script>
+
+
+function startClustering(map, data) {
+  // First we need to create an array of DataPoint objects,
+  // for the ClusterProvider
+  var dataPoints = data.map(function (item) {
+    return new H.clustering.DataPoint(item.latitude, item.longitude);
+  });
+
+  // Create a clustering provider with custom options for clusterizing the input
+  var clusteredDataProvider = new H.clustering.Provider(dataPoints, {
+    clusteringOptions: {
+      // Maximum radius of the neighbourhood
+      eps: 32,
+      // minimum weight of points required to form a cluster
+      minWeight: 2,
+    },
+  });
+
+  // Create a layer tha will consume objects from our clustering provider
+  var clusteringLayer = new H.map.layer.ObjectLayer(clusteredDataProvider);
+
+  // To make objects from clustering provder visible,
+  // we need to add our layer to the map
+  map.addLayer(clusteringLayer);
+}
+
+
+   
+    // Initialize the platform object
+    const platform = new H.service.Platform({
+      'apikey': 'Z5k1RNG4mzBBAVsUYqyL1knF2g6_iGaNsPK94CJx1-c'
+    });
+
+    // Obtain the default map types from the platform object
+    const defaultLayers = platform.createDefaultLayers();
+
+    // Instantiate (and display) the map
+    const map = new H.Map(
+      document.getElementById('mapContainer'),
+      defaultLayers.vector.normal.map,
+      {
+        zoom: 2,
+        center: {lat: -0.97, lng: 116}
+      });
+
+      
+   
+
+    const ui = H.ui.UI.createDefault(map, defaultLayers, 'en-US');
+    const behaviour = new H.mapevents.Behavior(new H.mapevents.MapEvents(map));
+    startClustering(map, clusteredPlace);
+</script>
